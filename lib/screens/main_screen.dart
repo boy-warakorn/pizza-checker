@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -11,7 +13,45 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final picker = ImagePicker();
+  var thisIs;
+  double score;
   File _pickedImage;
+
+  void _showAlert(
+    BuildContext context,
+    String thisIs,
+    String score,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: <Widget>[
+            Text("This is $thisIs!"),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        content: Container(
+          height: 60,
+          child: Column(
+            children: <Widget>[
+              SizedBox(
+                height: 10,
+              ),
+              Text('with $score percent confidence'),
+              SizedBox(
+                height: 15,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _pickImage() async {
     final pickedImageFile = await picker.getImage(
@@ -24,6 +64,33 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _pickedImage = File(pickedImageFile.path);
     });
+  }
+
+  void _upload(File file) async {
+    String fileName = file.path.split('/').last;
+
+    FormData data = FormData.fromMap({
+      "file": await MultipartFile.fromFile(
+        file.path,
+        filename: fileName,
+      ),
+    });
+
+    Dio dio = new Dio();
+
+    dio.post("http://localhost:5000/upload", data: data).then((response) {
+      setState(() {
+        final temp = json.decode(response.data);
+
+        thisIs = temp['class'];
+        score = temp['score'] as double;
+        _showAlert(
+          context,
+          thisIs == 'pizza' ? 'a pizza' : 'not a pizza',
+          score.toStringAsFixed(2),
+        );
+      });
+    }).catchError((error) => print(error));
   }
 
   @override
@@ -105,7 +172,11 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         ),
                         RaisedButton(
-                          onPressed: _pickedImage == null ? null : () {},
+                          onPressed: _pickedImage == null
+                              ? null
+                              : () async {
+                                  _upload(_pickedImage);
+                                },
                           color: Colors.orange,
                           child: Text(
                             'Let\'s check it',
