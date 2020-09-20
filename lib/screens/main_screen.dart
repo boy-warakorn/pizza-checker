@@ -12,6 +12,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  bool isLoading = false;
   final picker = ImagePicker();
   var thisIs;
   double score;
@@ -57,8 +58,8 @@ class _MainScreenState extends State<MainScreen> {
     final pickedImageFile = await picker.getImage(
       source: ImageSource.gallery,
       imageQuality: 100,
-      maxWidth: 180,
-      maxHeight: 180,
+      maxWidth: 1800,
+      maxHeight: 1800,
     );
 
     setState(() {
@@ -67,6 +68,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _upload(File file) async {
+    setState(() {
+      isLoading = true;
+    });
     String fileName = file.path.split('/').last;
 
     FormData data = FormData.fromMap({
@@ -89,6 +93,9 @@ class _MainScreenState extends State<MainScreen> {
           thisIs == 'pizza' ? 'a pizza' : 'not a pizza',
           score.toStringAsFixed(2),
         );
+        setState(() {
+          isLoading = false;
+        });
       });
     }).catchError((error) => print(error));
   }
@@ -165,27 +172,29 @@ class _MainScreenState extends State<MainScreen> {
                           },
                           borderSide: BorderSide(color: Colors.orange),
                           child: Text(
-                            'Insert picture',
+                            'insert',
                             style: GoogleFonts.londrinaSolid(
                               fontSize: 18,
                             ),
                           ),
                         ),
-                        RaisedButton(
-                          onPressed: _pickedImage == null
-                              ? null
-                              : () async {
-                                  _upload(_pickedImage);
-                                },
-                          color: Colors.orange,
-                          child: Text(
-                            'Let\'s check it',
-                            style: GoogleFonts.londrinaSolid(
-                              fontSize: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                        !isLoading
+                            ? RaisedButton(
+                                onPressed: _pickedImage == null
+                                    ? null
+                                    : () async {
+                                        _upload(_pickedImage);
+                                      },
+                                color: Colors.orange,
+                                child: Text(
+                                  'Let\'s check it',
+                                  style: GoogleFonts.londrinaSolid(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : CircularProgressIndicator(),
                       ],
                     ),
                   ],
